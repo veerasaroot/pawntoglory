@@ -47,6 +47,28 @@ type Pairing = {
   board_number: number;
 };
 
+type PairingData = {
+  id: string;
+  white_id: string | null;
+  black_id: string | null;
+  result: string | null;
+  board_number: number;
+  white: {
+    id: string;
+    participant: {
+      name: string;
+      chesscom_username: string;
+    }
+  } | null;
+  black: {
+    id: string;
+    participant: {
+      name: string;
+      chesscom_username: string;
+    }
+  } | null;
+};
+
 export default function TournamentDetail() {
   const params = useParams();
   const router = useRouter();
@@ -172,12 +194,12 @@ export default function TournamentDetail() {
     }
 
     // Transform the data for easier rendering
-    const formattedPairings = pairingsData.map(pairing => ({
+    const formattedPairings = (pairingsData as PairingData[]).map(pairing => ({
       id: pairing.id,
-      white_id: pairing.white_id,
+      white_id: pairing.white_id || '',
       white_name: pairing.white?.participant?.name || 'BYE',
       white_username: pairing.white?.participant?.chesscom_username || '-',
-      black_id: pairing.black_id,
+      black_id: pairing.black_id || '',
       black_name: pairing.black?.participant?.name || 'BYE',
       black_username: pairing.black?.participant?.chesscom_username || '-',
       result: pairing.result,
