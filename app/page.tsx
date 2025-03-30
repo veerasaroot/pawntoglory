@@ -153,7 +153,7 @@ export default function Home() {
         </div>
         
         {/* Testimonials */}
-        <div className="mt-24">
+        {/* <div className="mt-24">
           <h2 className="text-3xl font-bold text-chess-gold text-center font-serif mb-2">ความประทับใจจากผู้เข้าแข่งขัน</h2>
           <p className="text-chess-text-muted text-center max-w-2xl mx-auto mb-12">
             เสียงตอบรับจากผู้เข้าร่วมการแข่งขันในรายการก่อนหน้า
@@ -226,7 +226,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
         
         {/* Call to Action */}
         <div className="mt-20 bg-chess-dark rounded-chess shadow-chess p-12 text-center relative overflow-hidden">
