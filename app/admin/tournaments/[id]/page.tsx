@@ -58,15 +58,25 @@ type PairingData = {
     participant: {
       name: string;
       chesscom_username: string;
-    }
-  } | null;
+    }[];
+  }[] | null;
   black: {
     id: string;
     participant: {
       name: string;
       chesscom_username: string;
-    }
-  } | null;
+    }[];
+  }[] | null;
+};
+
+type PreviousPairingData = {
+  id: string;
+  white_id: string;
+  black_id: string;
+  result: string | null;
+  round: {
+    round_number: number;
+  };
 };
 
 export default function TournamentDetail() {
@@ -194,17 +204,37 @@ export default function TournamentDetail() {
     }
 
     // Transform the data for easier rendering
-    const formattedPairings = (pairingsData as PairingData[]).map(pairing => ({
-      id: pairing.id,
-      white_id: pairing.white_id || '',
-      white_name: pairing.white?.participant?.name || 'BYE',
-      white_username: pairing.white?.participant?.chesscom_username || '-',
-      black_id: pairing.black_id || '',
-      black_name: pairing.black?.participant?.name || 'BYE',
-      black_username: pairing.black?.participant?.chesscom_username || '-',
-      result: pairing.result,
-      board_number: pairing.board_number
-    }));
+    const formattedPairings = pairingsData?.map(pairing => {
+      // ดึงข้อมูลผู้เล่นฝั่งขาว
+      let whiteName = 'BYE';
+      let whiteUsername = '-';
+      if (pairing.white && pairing.white.length > 0 && 
+          pairing.white[0].participant && pairing.white[0].participant.length > 0) {
+        whiteName = pairing.white[0].participant[0].name || 'BYE';
+        whiteUsername = pairing.white[0].participant[0].chesscom_username || '-';
+      }
+      
+      // ดึงข้อมูลผู้เล่นฝั่งดำ
+      let blackName = 'BYE';
+      let blackUsername = '-';
+      if (pairing.black && pairing.black.length > 0 && 
+          pairing.black[0].participant && pairing.black[0].participant.length > 0) {
+        blackName = pairing.black[0].participant[0].name || 'BYE';
+        blackUsername = pairing.black[0].participant[0].chesscom_username || '-';
+      }
+      
+      return {
+        id: pairing.id,
+        white_id: pairing.white_id || '',
+        white_name: whiteName,
+        white_username: whiteUsername,
+        black_id: pairing.black_id || '',
+        black_name: blackName,
+        black_username: blackUsername,
+        result: pairing.result,
+        board_number: pairing.board_number
+      };
+    }) || [];
 
     setPairings(formattedPairings);
   };
@@ -247,7 +277,7 @@ export default function TournamentDetail() {
     }
 
     // Fetch all previous pairings for Swiss pairing algorithm
-    const { data: previousPairings, error: pairingsError } = await supabase
+    const { data: previousPairingsData, error: pairingsError } = await supabase
       .from('pairings')
       .select(`
         id,
@@ -274,12 +304,20 @@ export default function TournamentDetail() {
       tiebreak2: p.tiebreak_2
     }));
 
-    const formattedPreviousPairings = previousPairings.map(p => ({
-      whiteId: p.white_id,
-      blackId: p.black_id,
-      roundNumber: p.round.round_number,
-      result: p.result
-    }));
+    const formattedPreviousPairings = previousPairingsData?.map(p => {
+      // ดึง round_number จากโครงสร้างที่ถูกต้อง
+      let roundNumber = 0;
+      if (p.round && p.round.length > 0) {
+        roundNumber = p.round[0].round_number || 0;
+      }
+      
+      return {
+        whiteId: p.white_id,
+        blackId: p.black_id,
+        roundNumber: roundNumber,
+        result: p.result
+      };
+    }) || [];
 
     // Generate pairings using Swiss algorithm
     const generatedPairings = generateSwissPairings(
