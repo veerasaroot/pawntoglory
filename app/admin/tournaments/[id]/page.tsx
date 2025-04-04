@@ -47,26 +47,24 @@ type Pairing = {
   board_number: number;
 };
 
+type ParticipantData = {
+  name: string;
+  chesscom_username: string;
+};
+
+type TournamentParticipantData = {
+  id: string;
+  participant: ParticipantData | ParticipantData[];
+};
+
 type PairingData = {
   id: string;
   white_id: string | null;
   black_id: string | null;
   result: string | null;
   board_number: number;
-  white: {
-    id: string;
-    participant: {
-      name: string;
-      chesscom_username: string;
-    }[];
-  }[] | null;
-  black: {
-    id: string;
-    participant: {
-      name: string;
-      chesscom_username: string;
-    }[];
-  }[] | null;
+  white_player: TournamentParticipantData | TournamentParticipantData[] | null;
+  black_player: TournamentParticipantData | TournamentParticipantData[] | null;
 };
 
 type PreviousPairingData = {
@@ -181,52 +179,92 @@ export default function TournamentDetail() {
     const { data: pairingsData, error: pairingsError } = await supabase
       .from('pairings')
       .select(`
-    id,
-    white_id,
-    black_id,
-    result,
-    board_number,
-    white_player:tournament_participants!white_id(
-      id,
-      participant:participants!participant_id(
-        name, 
-        chesscom_username
-      )
-    ),
-    black_player:tournament_participants!black_id(
-      id,
-      participant:participants!participant_id(
-        name, 
-        chesscom_username
-      )
-    )
-  `)
+        id,
+        white_id,
+        black_id,
+        result,
+        board_number,
+        white_player:tournament_participants!white_id(
+          id,
+          participant:participants!participant_id(
+            name, 
+            chesscom_username
+          )
+        ),
+        black_player:tournament_participants!black_id(
+          id,
+          participant:participants!participant_id(
+            name, 
+            chesscom_username
+          )
+        )
+      `)
       .eq('round_id', roundId)
       .order('board_number', { ascending: true });
-
+  
     if (pairingsError) {
       console.error('Error fetching pairings:', pairingsError);
       return;
     }
-
+  
     // Transform the data for easier rendering
-    const formattedPairings = pairingsData?.map(pairing => {
+    const formattedPairings = pairingsData?.map((pairing: PairingData) => {
       // ดึงข้อมูลผู้เล่นฝั่งขาว
       let whiteName = 'BYE';
       let whiteUsername = '-';
-      if (pairing.white_player && pairing.white_player.participant) {
-        whiteName = pairing.white_player.participant.name || 'BYE';
-        whiteUsername = pairing.white_player.participant.chesscom_username || '-';
-      }
-
-      // ดึงข้อมูลผู้เล่นฝั่งดำ
-      let blackName = 'BYE';
-      let blackUsername = '-';
-      if (pairing.black_player && pairing.black_player.participant) {
-        blackName = pairing.black_player.participant.name || 'BYE';
-        blackUsername = pairing.black_player.participant.chesscom_username || '-';
-      }
-
+  
+      // Helper function to safely extract player info
+      const extractPlayerInfo = (playerData: any): [string, string] => {
+        if (!playerData) return ['BYE', '-'];
+        
+        // Case 1: Array of tournament participants
+        if (Array.isArray(playerData) && playerData.length > 0) {
+          const participant = playerData[0].participant;
+          
+          // Case 1.1: Participant is an array
+          if (Array.isArray(participant) && participant.length > 0) {
+            return [
+              participant[0].name || 'BYE',
+              participant[0].chesscom_username || '-'
+            ];
+          } 
+          // Case 1.2: Participant is an object
+          else if (participant && typeof participant === 'object') {
+            return [
+              participant.name || 'BYE',
+              participant.chesscom_username || '-'
+            ];
+          }
+        } 
+        // Case 2: Single tournament participant object
+        else if (playerData && typeof playerData === 'object') {
+          const participant = playerData.participant;
+          
+          // Case 2.1: Participant is an array
+          if (Array.isArray(participant) && participant.length > 0) {
+            return [
+              participant[0].name || 'BYE',
+              participant[0].chesscom_username || '-'
+            ];
+          } 
+          // Case 2.2: Participant is an object
+          else if (participant && typeof participant === 'object') {
+            return [
+              participant.name || 'BYE',
+              participant.chesscom_username || '-'
+            ];
+          }
+        }
+        
+        return ['BYE', '-'];
+      };
+  
+      // Get white player info
+      [whiteName, whiteUsername] = extractPlayerInfo(pairing.white_player);
+      
+      // Get black player info
+      let [blackName, blackUsername] = extractPlayerInfo(pairing.black_player);
+  
       return {
         id: pairing.id,
         white_id: pairing.white_id || '',
@@ -239,7 +277,7 @@ export default function TournamentDetail() {
         board_number: pairing.board_number
       };
     }) || [];
-
+  
     setPairings(formattedPairings);
   };
 
