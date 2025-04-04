@@ -181,20 +181,26 @@ export default function TournamentDetail() {
     const { data: pairingsData, error: pairingsError } = await supabase
       .from('pairings')
       .select(`
-        id,
-        white_id,
-        black_id,
-        result,
-        board_number,
-        white:white_id(
-          id,
-          participant:participant_id(name, chesscom_username)
-        ),
-        black:black_id(
-          id,
-          participant:participant_id(name, chesscom_username)
-        )
-      `)
+    id,
+    white_id,
+    black_id,
+    result,
+    board_number,
+    white_player:tournament_participants!white_id(
+      id,
+      participant:participants!participant_id(
+        name, 
+        chesscom_username
+      )
+    ),
+    black_player:tournament_participants!black_id(
+      id,
+      participant:participants!participant_id(
+        name, 
+        chesscom_username
+      )
+    )
+  `)
       .eq('round_id', roundId)
       .order('board_number', { ascending: true });
 
@@ -208,21 +214,19 @@ export default function TournamentDetail() {
       // ดึงข้อมูลผู้เล่นฝั่งขาว
       let whiteName = 'BYE';
       let whiteUsername = '-';
-      if (pairing.white && pairing.white.length > 0 && 
-          pairing.white[0].participant && pairing.white[0].participant.length > 0) {
-        whiteName = pairing.white[0].participant[0].name || 'BYE';
-        whiteUsername = pairing.white[0].participant[0].chesscom_username || '-';
+      if (pairing.white_player && pairing.white_player.participant) {
+        whiteName = pairing.white_player.participant.name || 'BYE';
+        whiteUsername = pairing.white_player.participant.chesscom_username || '-';
       }
-      
+
       // ดึงข้อมูลผู้เล่นฝั่งดำ
       let blackName = 'BYE';
       let blackUsername = '-';
-      if (pairing.black && pairing.black.length > 0 && 
-          pairing.black[0].participant && pairing.black[0].participant.length > 0) {
-        blackName = pairing.black[0].participant[0].name || 'BYE';
-        blackUsername = pairing.black[0].participant[0].chesscom_username || '-';
+      if (pairing.black_player && pairing.black_player.participant) {
+        blackName = pairing.black_player.participant.name || 'BYE';
+        blackUsername = pairing.black_player.participant.chesscom_username || '-';
       }
-      
+
       return {
         id: pairing.id,
         white_id: pairing.white_id || '',
@@ -310,7 +314,7 @@ export default function TournamentDetail() {
       if (p.round && p.round.length > 0) {
         roundNumber = p.round[0].round_number || 0;
       }
-      
+
       return {
         whiteId: p.white_id,
         blackId: p.black_id,
@@ -444,8 +448,8 @@ export default function TournamentDetail() {
             </div>
             <div className="mt-2">
               <span className={`inline-block px-2 py-1 text-sm rounded ${tournament.status === 'active' ? 'bg-green-100 text-green-800' :
-                  tournament.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
+                tournament.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'
                 }`}>
                 {tournament.status === 'active' ? 'กำลังแข่งขัน' :
                   tournament.status === 'upcoming' ? 'กำลังจะมาถึง' :
@@ -463,8 +467,8 @@ export default function TournamentDetail() {
                 onClick={createNewRound}
                 disabled={currentRound !== null || rounds.length >= tournament.total_rounds}
                 className={`px-4 py-2 rounded ${currentRound !== null || rounds.length >= tournament.total_rounds
-                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
               >
                 เริ่มรอบใหม่
@@ -488,8 +492,8 @@ export default function TournamentDetail() {
             <button
               onClick={() => setTabView('standings')}
               className={`px-6 py-3 text-sm font-medium ${tabView === 'standings'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               อันดับคะแนน
@@ -497,8 +501,8 @@ export default function TournamentDetail() {
             <button
               onClick={() => setTabView('rounds')}
               className={`px-6 py-3 text-sm font-medium ${tabView === 'rounds'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               รอบการแข่งขัน
@@ -506,8 +510,8 @@ export default function TournamentDetail() {
             <button
               onClick={() => setTabView('participants')}
               className={`px-6 py-3 text-sm font-medium ${tabView === 'participants'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               ผู้เข้าแข่งขัน
@@ -590,8 +594,8 @@ export default function TournamentDetail() {
                         รอบที่ {round.round_number}
                       </h3>
                       <span className={`inline-block px-2 py-1 text-xs rounded ${round.status === 'active' ? 'bg-green-100 text-green-800' :
-                          round.status === 'pending' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
+                        round.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                         {round.status === 'active' ? 'กำลังแข่งขัน' :
                           round.status === 'pending' ? 'รอการเริ่ม' :
